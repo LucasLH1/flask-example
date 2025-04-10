@@ -21,31 +21,30 @@
         <ul class="nav navbar-nav">
             <li><a href="{{ url_for('FUN_root') }}">Home</a></li>
             <li><a href="{{ url_for('FUN_public') }}">Public</a></li>
-            {% if session.get("current_user", None) != None %}
-	       <li><a href="{{ url_for('FUN_private') }}">Private</a></li>
-	    {% endif%}
-            {% if session.get("current_user", None) == "ADMIN" %}
-	      <li><a href="{{ url_for('FUN_admin') }}">Admin Dashboard</a></li>
-	    {% endif %}
+            {% if current_user.is_authenticated %}
+              <li><a href="{{ url_for('FUN_private') }}">Private</a></li>
+            {% endif %}
+
+            {% if current_user.is_authenticated and current_user.is_admin() %}
+              <li><a href="{{ url_for('FUN_admin') }}">Admin Dashboard</a></li>
+            {% endif %}
         </ul>
         
         <ul class="nav navbar-nav navbar-right">
-        {% if session.get("current_user", None) == None %}
-                <form action="/login" method="post" class="navbar-form navbar-right">
-                    <div class="form-group">
-                      <input type="text" name="id" placeholder="User Name" class="form-control">
-                    </div>
-                    <div class="form-group">
-                      <input type="password" name="pw" placeholder="Password" class="form-control">
-                    </div>
-                    <button type="submit" class="btn btn-success">Log In</button>
-                </form>
-        {% else %}
-        <li>
-              <a><b>{{ session.get("current_user") }}</b></a></li>
-              <li><a href="{{ url_for('FUN_logout') }}"><b><u>Logout</u></b></a>
-          </li>
-        {% endif %}
+          {% if not current_user.is_authenticated %}
+            <form action="{{ url_for('FUN_login') }}" method="post" class="navbar-form navbar-right">
+                <div class="form-group">
+                  <input type="text" name="id" placeholder="User Name" class="form-control">
+                </div>
+                <div class="form-group">
+                  <input type="password" name="pw" placeholder="Password" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-success">Log In</button>
+            </form>
+          {% else %}
+            <li><a><b>{{ current_user.get_id() }}</b></a></li>
+            <li><a href="{{ url_for('FUN_logout') }}"><b><u>Logout</u></b></a></li>
+          {% endif %}
         </ul>
         </div>
                         

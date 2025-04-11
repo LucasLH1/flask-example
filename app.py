@@ -89,6 +89,7 @@ def FUN_admin():
                          user_list,
                          ["/delete_user/" + u for u in user_list])
         logs = get_logs()
+        logger.info("Accès au dashboard admin")
         return render_template("admin.html", users=user_table, logs=logs)
     else:
         return abort(401)

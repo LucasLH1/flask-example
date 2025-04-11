@@ -2,17 +2,22 @@ import sys
 import os
 import sqlite3
 import pytest
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import database
 import hashlib
 import datetime
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from config import get_db_path
+from repositories.user_repository import verify
+from repositories.note_repository import write_note, read_notes
+from repositories.image_repository import list_images
 
 USER_ID = "TESTUSER"
 
 def setup_user_and_notes():
-    os.makedirs("database_file", exist_ok=True)
-
-    conn = sqlite3.connect("database_file/users.db")
+    user_db = get_db_path("users")
+    os.makedirs(os.path.dirname(user_db), exist_ok=True)
+    conn = sqlite3.connect(user_db)
     c = conn.cursor()
     c.execute("DROP TABLE IF EXISTS users;")
     c.execute("CREATE TABLE users (id TEXT PRIMARY KEY, pw TEXT);")
@@ -21,7 +26,8 @@ def setup_user_and_notes():
     conn.commit()
     conn.close()
 
-    conn = sqlite3.connect("database_file/notes.db")
+    note_db = get_db_path("notes")
+    conn = sqlite3.connect(note_db)
     c = conn.cursor()
     c.execute("DROP TABLE IF EXISTS notes;")
     c.execute("CREATE TABLE notes (user TEXT, timestamp TEXT, note TEXT, note_id TEXT);")
@@ -32,7 +38,8 @@ def setup_user_and_notes():
     conn.commit()
     conn.close()
 
-    conn = sqlite3.connect("database_file/images.db")
+    image_db = get_db_path("images")
+    conn = sqlite3.connect(image_db)
     c = conn.cursor()
     c.execute("DROP TABLE IF EXISTS images;")
     c.execute("CREATE TABLE images (uid TEXT, owner TEXT, name TEXT, timestamp TEXT);")
@@ -42,26 +49,22 @@ def setup_user_and_notes():
     conn.commit()
     conn.close()
 
-
 @pytest.mark.benchmark(group="auth")
 def test_verify_performance(benchmark):
     setup_user_and_notes()
-    benchmark(lambda: database.verify(USER_ID, "password"))
-
+    benchmark(lambda: verify(USER_ID, "password"))
 
 @pytest.mark.benchmark(group="notes")
 def test_write_note_performance(benchmark):
     setup_user_and_notes()
-    benchmark(lambda: database.write_note_into_db(USER_ID, "Une note de test"))
-
+    benchmark(lambda: write_note(USER_ID, "Une note de test"))
 
 @pytest.mark.benchmark(group="notes")
 def test_read_notes_performance(benchmark):
     setup_user_and_notes()
-    benchmark(lambda: database.read_note_from_db(USER_ID))
-
+    benchmark(lambda: read_notes(USER_ID))
 
 @pytest.mark.benchmark(group="images")
 def test_list_images_performance(benchmark):
     setup_user_and_notes()
-    benchmark(lambda: database.list_images_for_user(USER_ID))
+    benchmark(lambda: list_images(USER_ID))

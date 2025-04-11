@@ -10,6 +10,11 @@ from repositories.note_repository import read_notes, write_note, delete_note, ma
 from repositories.image_repository import upload_image, list_images, delete_image, match_user_with_image_uid
 from repositories.log_repository import log_event, get_logs
 from werkzeug.utils import secure_filename
+from logging_config import setup_logger
+setup_logger()
+
+import logging
+logger = logging.getLogger("flask_app")
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -92,6 +97,7 @@ def FUN_admin():
 @login_required
 def FUN_write_note():
     write_note(current_user.get_id(), request.form.get("text_note_to_take"))
+    logger.info("Note ajoutée")
     return redirect(url_for("FUN_private"))
 
 @app.route("/delete_note/<note_id>", methods=["GET"])
@@ -99,6 +105,7 @@ def FUN_write_note():
 def FUN_delete_note(note_id):
     if current_user.get_id() == match_user_with_note(note_id):
         delete_note(note_id)
+        logger.info(f"Note supprimée : {note_id}")
     else:
         return abort(401)
     return redirect(url_for("FUN_private"))
@@ -114,6 +121,7 @@ def FUN_upload_image():
     file = request.files.get('file')
     if not file or file.filename == '' or not allowed_file(file.filename):
         flash('Invalid file', category='danger')
+        logger.warning("Erreur lors de l'ajout d'une image.'")
         return redirect(url_for("FUN_private"))
 
     filename = secure_filename(file.filename)
@@ -121,6 +129,7 @@ def FUN_upload_image():
     image_uid = generate_sha256_id(upload_time + filename)
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_uid + "-" + filename))
     upload_image(image_uid, current_user.get_id(), filename, upload_time)
+    logger.info(f"Image ajouté : {filename}")
     return redirect(url_for("FUN_private"))
 
 @app.route("/delete_image/<image_uid>", methods=["GET"])
@@ -128,9 +137,11 @@ def FUN_upload_image():
 def FUN_delete_image(image_uid):
     if current_user.get_id() == match_user_with_image_uid(image_uid):
         delete_image(image_uid)
+        logger.info(f"Image supprimé : {image_uid}")
         image_to_delete = [y for y in os.listdir(app.config['UPLOAD_FOLDER']) if y.split("-", 1)[0] == image_uid][0]
         os.remove(os.path.join(app.config['UPLOAD_FOLDER'], image_to_delete))
     else:
+        logger.warning(f"Erreur lors de la suppression de l'image : {image_uid}")
         return abort(401)
     return redirect(url_for("FUN_private"))
 
@@ -160,6 +171,7 @@ def FUN_delete_user(id):
             os.remove(os.path.join(app.config['UPLOAD_FOLDER'], image_file))
         delete_user(id)
         log_event(current_user.get_id(), f"delete_user {id}")
+        logger.info(f"Utilisateur supprimé : {id}")
         return redirect(url_for("FUN_admin"))
     return abort(401)
 
@@ -171,9 +183,11 @@ def FUN_add_user():
         if new_id in list_users() or " " in new_id or "'" in new_id:
             user_list = list_users()
             user_table = zip(range(1, len(user_list)+1), user_list, ["/delete_user/" + u for u in user_list])
+            logger.warning(f"Erreur lors de l'ajout de l'utilisateur : {new_id}")
             return render_template("admin.html", id_to_add_is_duplicated=new_id in list_users(), id_to_add_is_invalid=" " in new_id or "'" in new_id, users=user_table)
         add_user(new_id, request.form.get('pw'))
         log_event(current_user.get_id(), f"add_user {new_id}")
+        logger.info(f"Utilisateur ajouté : {new_id}")
         return redirect(url_for("FUN_admin"))
     return abort(401)
 

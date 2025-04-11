@@ -1,7 +1,8 @@
 import sqlite3
-
 from config import get_db_path
 from repositories.security import hash_password
+import logging
+logger = logging.getLogger("flask_app")
 
 def list_users():
     conn = sqlite3.connect(get_db_path("users"))
